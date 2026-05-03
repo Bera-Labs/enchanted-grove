@@ -1,16 +1,14 @@
 <script lang="ts">
 	import favicon from '$lib/assets/favicon.svg';
 	import { page } from '$app/state';
-	import { onMount } from 'svelte';
-	import { grove } from '$lib/store.svelte';
+	import { provideGrove } from '$lib/store.svelte';
 
 	let { children, data } = $props();
 
 	let path = $derived(page.url.pathname);
 
-	onMount(() => {
-		grove.hydrate(data.state);
-	});
+	// Per-request store, hydrated synchronously so SSR markup matches client.
+	provideGrove(data.state);
 </script>
 
 <svelte:head>

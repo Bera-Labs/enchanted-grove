@@ -1,3 +1,4 @@
+import { getContext, setContext } from 'svelte';
 import { SESSION_MS, STAGE_MS, type Plant, type PlantSpecies, type PlantStage } from './types';
 
 const SPECIES: PlantSpecies[] = ['glowfern', 'moonlily', 'starblossom', 'crystalvine', 'emberbloom'];
@@ -34,6 +35,7 @@ class GroveStore {
 
 	private tickHandle: number | null = null;
 	private saveTimer: number | null = null;
+	private saveAbort: AbortController | null = null;
 
 	/** Seed store from server-loaded persisted state (idempotent). */
 	hydrate(state: PersistedState | null) {
@@ -72,19 +74,28 @@ class GroveStore {
 			awaitingResult: this.awaitingResult,
 			noteDraft: this.noteDraft
 		};
+		// Cancel any in-flight save so the latest state always wins.
+		if (this.saveAbort) this.saveAbort.abort();
+		const controller = new AbortController();
+		this.saveAbort = controller;
 		this.saving = true;
 		this.saveError = null;
 		try {
 			const res = await fetch('/api/grove', {
 				method: 'PUT',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify(payload)
+				body: JSON.stringify(payload),
+				signal: controller.signal
 			});
 			if (!res.ok) throw new Error(`save failed: ${res.status}`);
 		} catch (e) {
+			if ((e as { name?: string })?.name === 'AbortError') return;
 			this.saveError = e instanceof Error ? e.message : 'save failed';
 		} finally {
-			this.saving = false;
+			if (this.saveAbort === controller) {
+				this.saveAbort = null;
+				this.saving = false;
+			}
 		}
 	}
 
@@ -162,6 +173,7 @@ class GroveStore {
 
 	private startTicking() {
 		this.stopTicking();
+		if (typeof window === 'undefined') return;
 		this.tickHandle = window.setInterval(() => {
 			this.now = Date.now();
 			if (this.current && !this.awaitingResult && this.elapsed >= SESSION_MS) {
@@ -173,11 +185,28 @@ class GroveStore {
 	}
 
 	private stopTicking() {
-		if (this.tickHandle !== null) {
+		if (this.tickHandle !== null && typeof window !== 'undefined') {
 			window.clearInterval(this.tickHandle);
-			this.tickHandle = null;
 		}
+		this.tickHandle = null;
 	}
 }
 
-export const grove = new GroveStore();
+export type Grove = GroveStore;
+
+const GROVE_KEY = Symbol('grove');
+
+/** Create a fresh GroveStore and expose it via Svelte context. Call from the root layout. */
+export function provideGrove(state: PersistedState | null): GroveStore {
+	const store = new GroveStore();
+	store.hydrate(state);
+	setContext(GROVE_KEY, store);
+	return store;
+}
+
+/** Read the GroveStore provided by an ancestor (typically the root layout). */
+export function getGrove(): GroveStore {
+	const store = getContext<GroveStore | undefined>(GROVE_KEY);
+	if (!store) throw new Error('GroveStore not provided. Did the root layout call provideGrove()?');
+	return store;
+}

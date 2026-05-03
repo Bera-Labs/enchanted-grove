@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { grove } from '$lib/store.svelte';
+	import { getGrove } from '$lib/store.svelte';
+
+	const grove = getGrove();
 
 	function isoWeek(d: Date): { year: number; week: number; key: string } {
 		const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -24,7 +26,9 @@
 	}
 
 	function fmtDate(d: Date) {
-		return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+		// Week boundaries are computed in UTC; format in UTC so users in western
+		// timezones don't see the date shift back by a day.
+		return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
 	}
 	function fmtFullDate(ts: number) {
 		return new Date(ts).toLocaleString(undefined, {

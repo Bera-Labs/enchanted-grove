@@ -1,8 +1,10 @@
 <script lang="ts">
 	import Stage from '$lib/Stage.svelte';
-	import { grove } from '$lib/store.svelte';
+	import { getGrove } from '$lib/store.svelte';
 	import { SESSION_MS } from '$lib/types';
 	import { onMount } from 'svelte';
+
+	const grove = getGrove();
 
 	const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 

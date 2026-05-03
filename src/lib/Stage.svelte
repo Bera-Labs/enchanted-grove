@@ -38,20 +38,32 @@
 		class="layer landscape dead-land"
 		class:active={isDead}
 	/>
+	<!--
+		Only attach a src to the currently-active layer; inactive layers stay
+		mounted (preserving the opacity cross-fade) but don't trigger a network
+		request. Using `undefined` omits the attribute entirely; an empty string
+		would cause the browser to refetch the current page URL.
+	-->
 	{#each landscapes as l, i}
 		<img
-			src={l.src}
-			alt="landscape"
+			src={i === landscapeIdx ? l.src : undefined}
+			alt=""
+			role="presentation"
 			class="layer landscape"
 			class:active={i === landscapeIdx}
+			loading="lazy"
+			decoding="async"
 		/>
 	{/each}
-	{#each growthImgs as src, i}
+	{#each growthImgs as gSrc, i}
 		<img
-			{src}
-			alt="growth-{i}"
+			src={i === growthIdx ? gSrc : undefined}
+			alt=""
+			role="presentation"
 			class="layer growth"
 			class:active={i === growthIdx}
+			loading="lazy"
+			decoding="async"
 		/>
 	{/each}
 	<div class="vignette"></div>
