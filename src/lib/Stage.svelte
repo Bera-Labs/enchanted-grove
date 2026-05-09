@@ -9,18 +9,22 @@
 	}
 	let { stage, status = 'growing', hasSession, density }: Props = $props();
 
+	// cache-busting query string: stable per page load, refreshes on reload so
+	// replaced asset files show up immediately without needing a hard refresh.
+	const CACHE_BUST = `?v=${Date.now()}`;
+
 	// landscapes from sparse → dense; clamp density into range
 	const LANDSCAPE_COUNT = 13;
 	const landscapes = Array.from({ length: LANDSCAPE_COUNT }, (_, i) => ({
-		src: `/assets/landscape-${String(i + 1).padStart(2, '0')}.jpg`
+		src: `/assets/landscape-${String(i + 1).padStart(2, '0')}.jpg${CACHE_BUST}`
 	}));
-	const DEAD_LAND_SRC = '/assets/dead-land.jpg';
+	const DEAD_LAND_SRC = `/assets/dead-land.jpg${CACHE_BUST}`;
 	const growthImgs = [
-		'/assets/growth-0.jpg',
-		'/assets/growth-1.png',
-		'/assets/growth-2.jpg',
-		'/assets/growth-3.jpg',
-		'/assets/growth-4.jpg'
+		`/assets/growth-0.jpg${CACHE_BUST}`,
+		`/assets/growth-1.png${CACHE_BUST}`,
+		`/assets/growth-2.jpg${CACHE_BUST}`,
+		`/assets/growth-3.jpg${CACHE_BUST}`,
+		`/assets/growth-4.jpg${CACHE_BUST}`
 	];
 
 	let isDead = $derived(density < 0);
